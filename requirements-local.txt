@@ -1,0 +1,8 @@
+requests
+flask
+flask-rest-api
+mongoengine
+pandas
+pymongo
+tensorflow
+transformers
