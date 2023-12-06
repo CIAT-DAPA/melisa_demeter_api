@@ -1,0 +1,46 @@
+from enum import Enum
+
+class ReplyKindEnum(Enum):
+    HI = 1
+    HELP = 2
+    BYE = 3
+    THANKS = 4
+    RECEIVED_OK = 5
+    RECEIVED_ERROR = 6
+    NEW_USER = 7
+    WAIT = 8
+
+class ReplyErrorEnum(Enum):
+    MISSING_LOCALITIES = 1
+    ERROR_ACLIMATE = 2
+    LOCALITY_NOT_FOUND = 3
+    ERROR_ACLIMATE_CLIMATOLOGY = 4
+    ERROR_ACLIMATE_FORECAST_CLIMATE = 5
+    
+
+class ReplyGeographicEnum(Enum):
+    STATE = 1
+    MUNICIPALITIES_STATE = 2
+    WS_MUNICIPALITY = 3
+    WEATHER_STATION = 4
+
+class ReplyCultivarsEnum(Enum):
+    CROP_MULTIPLE = 1
+    CROP_CULTIVAR = 2
+    CULTIVARS_MULTIPLE = 3
+
+class ReplyHistoricalEnum(Enum):
+    CLIMATOLOGY = 1
+
+class ReplyForecastEnum(Enum):
+    CLIMATE = 1
+    YIELD_PERFORMANCE = 2
+    YIELD_DATE = 3
+
+
+class Reply():
+
+    def __init__(self, type = None, values = None, tag = None):
+        self.type = type
+        self.values = values
+        self.tag = tag

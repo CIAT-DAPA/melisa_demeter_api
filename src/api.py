@@ -1,14 +1,16 @@
 import flask
 from flask import request,Response
 import requests
-from mongoengine import *
-from orm.orm_demeter import *
 import datetime
 from flask_cors import cross_origin
 
+from melisa_orm import Melisa, User, Thread, ThreadEnum, Chat, Form, ChatWhomEnum, ChatStatusEnum, ChatKindEnum, Intent, IntentGroupEnum
+
+from policy_management.policy_intent import PolicyIntent
+from policy_management.policy_command import PolicyCommand
 from nlu.enums import Intent, Commands
 from nlu.nlu_tasks import NLUTasks
-from policy_management.policy_management import PolicyManagement
+
 from policy_management.ner import NER
 from policy_management.request_melisa import RequestMelisa
 from nlg.generator import Generator
@@ -46,15 +48,13 @@ def send_message(req,melisa,messages):
     response = requests.post(melisa.url_post,json=request_body)
 
 # A route to return all of the available entries in our catalog.
-#@app.route('/api/v1/query/', methods=['GET'])
 @app.route('/api/v1/query/', methods=['POST'])
 @cross_origin()
 def api_query():
     data = request.get_json()
     req = RequestMelisa(data)
     try:
-        #say_wait = True
-        #say_hi = True
+        req.validate_request()
         # Validate if melisa exists into the database
         if not Melisa.objects(name=req.melisa_name):
             return Response("Melisa unknown",400)
@@ -62,7 +62,7 @@ def api_query():
             melisa = Melisa.objects.get(name=req.melisa_name)
             # Validate authentication
             if(melisa.token == req.melisa_token):
-
+                answers = []
                 user = None
                 # Check if the user is new
                 if not User.objects(user_id=req.user_id):
@@ -70,15 +70,46 @@ def api_query():
                     user.save()
                     # Sending welcome to new user
                     if melisa.say_hi:
-                        new_user_msg = Generator.print([NER(Commands.NEW_USER)])
-                        send_message(req,melisa,new_user_msg)
+                        send_message(req,melisa,Generator.print([NER(Commands.NEW_USER)]))
                 else:
                     user = User.objects.get(user_id=req.user_id)
 
-                recent_chats = Chat.objects(user = user).order_by('-date').limit(10)
+                # Detect the intention
+                p_intent = PolicyIntent(nlu=nlu_o)
+                all_forms = Form.objects()
+                int_detected = p_intent.detection(req.message_normalized, all_forms=all_forms)
+
+                # Get latest thread and check what the chatbot should do
+                current_thread = None
+                recent_chats = []
+                last_thread = Thread.objects(user=user).order_by('-id').first()
+
+                # Validate if the last thread is still opened
+                if last_thread and last_thread.status == ThreadEnum.OPENED:
+                    current_thread = last_thread
+                    recent_chats = Chat.objects(thread = last_thread).order_by('-id')
+                else:
+                    # If the latest thread is not or is closed, we create a new thread for this request
+                    new_intent = Intent(id =1, name="", group= 1)
+                    current_thread = Thread(user = user, intent = new_intent, status = ThreadEnum.OPENED)
+                    current_thread.save()
+
+                chat = Chat(thread=current_thread, date = datetime.datetime.now(),
+                                original = req.message_raw, text = req.message_normalized,
+                                status = ChatStatusEnum.PENDING, kind_msg = ChatKindEnum(req.kind),
+                                whom = ChatWhomEnum.USER, ext_id = req.chat_id,
+                                slots = int_detected.slots, tags=req.message_tags)
+
+                if last_thread.intent.group == IntentGroupEnum.COMMAND:
+                    policy = PolicyCommand()
+                    answers.extend(policy.process(current_thread, chat))
+                elif last_thread.intent.group == IntentGroupEnum.QA:
+                    policy
+                elif last_thread.intent.group == IntentGroupEnum.FORM:
+                    policy
+
                 # message
                 policy = PolicyManagement(config["ACLIMATE_API"],",".join(melisa.countries))
-                
 
                 # Create chat
                 chat = Chat(user = user, text = message, date = datetime.datetime.now(), ext_id = chat_id, tags=message_tags)

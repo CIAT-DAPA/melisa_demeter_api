@@ -10,7 +10,6 @@ class Intent(Enum):
 
     @staticmethod
     def list():
-        #return list(map(lambda c: c.name, Intent))
         return dict((label.name, idx) for idx, label in enumerate(Intent))
 
 class Slot(Enum):
@@ -28,7 +27,7 @@ class Geographic(Enum):
     WEATHER_STATION = 4
 
 class Cultivars(Enum):
-    CROP_MULTIPLE = 1    
+    CROP_MULTIPLE = 1
     CROP_CULTIVAR = 2
     CULTIVARS_MULTIPLE = 3
 
@@ -48,6 +47,7 @@ class Commands(Enum):
     RECEIVED_OK = 5
     RECEIVED_ERROR = 6
     NEW_USER = 7
+    WAIT = 8
 
 
 class Error(Enum):
