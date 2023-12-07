@@ -135,75 +135,63 @@ class AClimate:
 
     # Method that search yield forecast
     # (dataframe) entities: List of entities found in the message user
-    def forecast_yield(self, entities, best_date = False):
-        answer = []        
-        # Entities were found
-        #if (len(entities) > 0):            
+    def forecast_yield(self, locality, best_date = False, cultivar = None, crop = None):
+        answer = []
         # Get the localities
         geographic = self.catalog.get_Geographic(self.countries)
         cultivars = self.catalog.get_Cultivars()
         soils = self.catalog.get_Soils()
         if geographic is None or cultivars is None or soils is None:
-            answer.append(NER(Error.ERROR_ACLIMATE))
+            answer.append(Reply(ReplyErrorEnum.ERROR_ACLIMATE))
         else:
             ws_data = pd.DataFrame()
-            # Try to search if locality was reconigzed
-            if "locality" in entities.keys():                
-                # This loop figure out all localtities through: states, municipalities and ws, which are into the message
-                l = entities["locality"]
-                ws_data = self.get_ws(l, geographic)
-            
-                # Check if the ws were found
-                if(ws_data.shape[0] > 0):
-                    ws_id = ws_data["ws_id"].unique()
-                    ws = ','.join(ws_id)
-                    # Ask for the forecast data
-                    forecast = self.forecast.get_Yield(ws)
-                    if forecast is None:
-                        answer.append(NER(type = Error.ERROR_ACLIMATE_FORECAST_YIELD, tag = l))
-                    else:
-                        df = pd.merge(forecast, geographic, on='ws_id', how='inner')
-                        df = pd.merge(df, cultivars, on='cu_id', how='inner')
-                        df = pd.merge(df, soils, on='so_id', how='inner')
-                        # Filtering by cultivar
-                        filter_cultivar = False
-                        if "cultivar" in entities.keys():
-                            cu = entities["cultivar"] 
-                            dft = df.loc[df["cu_name"].str.contains(cu.lower(), case = False) ,:]
-                            if(dft.shape[0] > 0):
-                                df = dft
-                                filter_cultivar = True
-                        # Filter by crop if couldn't filter by cultivar
-                        if(filter_cultivar == False and "crop" in entities.keys()):
-                            cp = entities["crop"]
-                            dft = df.loc[df["cp_name"].str.contains(cp.lower(), case = False) ,:]
-                            if(dft.shape[0] > 0):
-                                df = dft
-                        # Filter by measure
-                        df = df.loc[df["measure"].isin(["yield_14", "yield_0"]),:]
-                        # Top five by crop 
-                        crops = df["cp_name"].unique().tolist()
-                        for c in crops:
-                            amount = 5
-                            type_answer = Forecast.YIELD_PERFORMANCE
-                            dft = pd.DataFrame()
-                            if best_date:
-                                amount = 1
-                                type_answer = Forecast.YIELD_DATE
-                                stations = df["ws_id"].unique().tolist()
-                                for s in stations:
-                                    d_local = df.loc[df["cp_name"] == str(c) ,:]
-                                    d_local = d_local.loc[ d_local["ws_id"] == str(s),:]
-                                    dft = dft.append(d_local.nlargest(amount,"avg"), ignore_index = True)    
-                            else:
-                                dft = df.loc[df["cp_name"] == c,:].nlargest(amount,"avg")
-                            answer.append(NER(type_answer, dft))
+            # This loop figure out all localtities through: states, municipalities and ws, which are into the message
+            ws_data = self.get_ws(locality, geographic)
+            # Check if the ws were found
+            if(ws_data.shape[0] > 0):
+                ws_id = ws_data["ws_id"].unique()
+                ws = ','.join(ws_id)
+                # Ask for the forecast data
+                forecast = self.forecast.get_Yield(ws)
+                if forecast is None:
+                    answer.append(Reply(type = ReplyErrorEnum.ERROR_ACLIMATE_FORECAST_YIELD, tag = locality))
                 else:
-                    answer.append(NER(Error.LOCALITY_NOT_FOUND,None,l))        
+                    df = pd.merge(forecast, geographic, on='ws_id', how='inner')
+                    df = pd.merge(df, cultivars, on='cu_id', how='inner')
+                    df = pd.merge(df, soils, on='so_id', how='inner')
+                    # Filtering by cultivar
+                    filter_cultivar = False
+                    if cultivar:
+                        dft = df.loc[df["cu_name"].str.contains(cultivar.lower(), case = False) ,:]
+                        if(dft.shape[0] > 0):
+                            df = dft
+                            filter_cultivar = True
+                    # Filter by crop if couldn't filter by cultivar
+                    if filter_cultivar == False and crop:
+                        dft = df.loc[df["cp_name"].str.contains(crop.lower(), case = False) ,:]
+                        if(dft.shape[0] > 0):
+                            df = dft
+                    # Filter by measure
+                    df = df.loc[df["measure"].isin(["yield_14", "yield_0"]),:]
+                    # Top five by crop
+                    crops = df["cp_name"].unique().tolist()
+                    for c in crops:
+                        amount = 5
+                        type_answer = ReplyForecastEnum.YIELD_PERFORMANCE
+                        dft = pd.DataFrame()
+                        if best_date:
+                            amount = 1
+                            type_answer = ReplyForecastEnum.YIELD_DATE
+                            stations = df["ws_id"].unique().tolist()
+                            for s in stations:
+                                d_local = df.loc[df["cp_name"] == str(c) ,:]
+                                d_local = d_local.loc[ d_local["ws_id"] == str(s),:]
+                                dft = dft.append(d_local.nlargest(amount,"avg"), ignore_index = True)
+                        else:
+                            dft = df.loc[df["cp_name"] == c,:].nlargest(amount,"avg")
+                        answer.append(Reply(type_answer, dft))
             else:
-                answer.append(NER(Error.MISSING_GEOGRAPHIC))
-        #else:
-            #answer.append(NER(Error.MISSING_ENTITIES))
+                answer.append(Reply(ReplyErrorEnum.LOCALITY_NOT_FOUND,None,locality))
         return answer
 
     # Method that returns the measure according to aclimate platform depending of request
@@ -239,5 +227,3 @@ class AClimate:
             if ws.shape[0] > 0:
                 ws_data = ws_data.append(ws, ignore_index=True)
         return ws_data
-
-

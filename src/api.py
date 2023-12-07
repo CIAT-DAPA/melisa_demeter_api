@@ -104,6 +104,9 @@ def api_query():
                     policy = PolicyCommand()
                     answers.extend(policy.process(current_thread, chat))
                 elif last_thread.intent.group == IntentGroupEnum.QA:
+                    # Validate if the melisa should answer fast and saying wait
+                    if melisa.say_wait:
+                        send_message(req,melisa,Generator.print([NER(Commands.WAIT)]))
                     policy
                 elif last_thread.intent.group == IntentGroupEnum.FORM:
                     policy
