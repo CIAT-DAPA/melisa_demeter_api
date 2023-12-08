@@ -8,41 +8,80 @@ class PolicyQA():
     def __init__(self, url, countries):
         self.aclimate_client = AClimate(url,countries)
 
-    def process(self, thread, chat, history_chats):
-        answers = []
+    # Close the thread
+    def close_thread(self, thread, chat, status):
         # Save the chat with the new status
-        chat.status = ChatStatusEnum.OK
+        chat.status = status
         chat.save()
 
-        # Close the thread
-        #thread.status = ThreadEnum.CLOSED
-        #thread.save()
+        thread.status = ThreadEnum.CLOSED
+        thread.save()
+
+    def process(self, thread, chat, history_chats):
+        answers = []
 
         if thread.intent.id == PolicyKnownEnum.PLACES:
             # Check if the current message has the data needed
             if "locality" in chat.slots:
                 answers.extend(self.aclimate_client.geographic(chat.slots["locality"]))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
             # If the message don't have the data needed we analyze all chats of the thread
             elif history_chats:
-                # If the thread is opend and the latest message was from the system the current message is the answer
-                if thread.status == ThreadEnum.OPENED and history_chats[0].whom == ChatWhomEnum.SYSTEM:
-                    chat.slots = [{"locality":chat.text}]
-                    chat.save()
-                    answers.extend(self.aclimate_client.geographic(chat.text))
-                # We assume the last message was the locality because the
-                else:
-                    answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                chat.slots = [{"locality":chat.text}]
+                answers.extend(self.aclimate_client.geographic(chat.text))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
             else:
                 answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                chat.save()
 
         elif thread.intent.id == PolicyKnownEnum.CULTIVARS:
-            answer = policy.cultivars(entities)
+            crop = chat.slots["crop"] if "crop" in chat.slots else None
+            cultivar = chat.slots["cultivar"] if "cultivar" in chat.slots else None
+            answers.extend(self.aclimate_client.cultivars(crop,cultivar))
+            self.close_thread(thread)
+
         elif thread.intent.id == PolicyKnownEnum.CLIMATOLOGY:
-            answer = policy.historical_climatology(entities)
+            # Check if the current message has the data needed
+            if "locality" in chat.slots:
+                answers.extend(self.aclimate_client.historical_climatology(chat.slots["locality"]))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
+            # If the message don't have the data needed we analyze all chats of the thread
+            elif history_chats:
+                chat.slots = [{"locality":chat.text}]
+                answers.extend(self.aclimate_client.geographic(chat.text))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
+            else:
+                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                chat.save()
+
         elif thread.intent.id == PolicyKnownEnum.FORECAST_PRECIPITATION:
-            answer = policy.forecast_climate(entities)
-        elif thread.intent.id == PolicyKnownEnum.FORECAST_YIELD:
-            answer = policy.forecast_yield(entities)
-        elif thread.intent.id == PolicyKnownEnum.FORECAST_DATE:
-            answer = policy.forecast_yield(entities, best_date=True)
+            # Check if the current message has the data needed
+            if "locality" in chat.slots:
+                answers.extend(self.aclimate_client.forecast_climate(chat.slots["locality"]))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
+            # If the message don't have the data needed we analyze all chats of the thread
+            elif history_chats:
+                chat.slots = [{"locality":chat.text}]
+                answers.extend(self.aclimate_client.geographic(chat.text))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
+            else:
+                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                chat.save()
+
+        elif thread.intent.id == PolicyKnownEnum.FORECAST_YIELD or thread.intent.id == PolicyKnownEnum.FORECAST_DATE:
+            best_date = False if thread.intent.id == PolicyKnownEnum.FORECAST_YIELD else True
+            cultivar = chat.slots["cultivar"] if "cultivar" in chat.slots else None
+            crop = chat.slots["crop"] if "crop" in chat.slots else None
+            # Check if the current message has the data needed
+            if "locality" in chat.slots:
+                answers.extend(self.aclimate_client.forecast_yield(chat.slots["locality"], best_date = best_date, cultivar=cultivar, crop=crop))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
+            # If the message don't have the data needed we analyze all chats of the thread
+            elif history_chats:
+                chat.slots = [{"locality":chat.text}]
+                answers.extend(self.aclimate_client.geographic(chat.text))
+                self.close_thread(thread, chat, ChatStatusEnum.OK)
+            else:
+                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                chat.save()
         return answers

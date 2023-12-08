@@ -8,6 +8,8 @@ from melisa_orm import Melisa, User, Thread, ThreadEnum, Chat, Form, ChatWhomEnu
 
 from policy_management.policy_intent import PolicyIntent
 from policy_management.policy_command import PolicyCommand
+from policy_management.policy_qa import PolicyQA
+
 from nlu.enums import Intent, Commands
 from nlu.nlu_tasks import NLUTasks
 
@@ -107,12 +109,13 @@ def api_query():
                     # Validate if the melisa should answer fast and saying wait
                     if melisa.say_wait:
                         send_message(req,melisa,Generator.print([NER(Commands.WAIT)]))
-                    policy
+                    policy = PolicyQA(config["ACLIMATE_API"],",".join(melisa.countries))
+                    answers.extend(policy.process(current_thread, chat, recent_chats))
                 elif last_thread.intent.group == IntentGroupEnum.FORM:
                     policy
 
                 # message
-                policy = PolicyManagement(config["ACLIMATE_API"],",".join(melisa.countries))
+                policy = PolicyManagement()
 
                 # Create chat
                 chat = Chat(user = user, text = message, date = datetime.datetime.now(), ext_id = chat_id, tags=message_tags)
