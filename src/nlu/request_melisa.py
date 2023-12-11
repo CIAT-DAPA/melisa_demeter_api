@@ -4,7 +4,7 @@ import re
 class RequestMelisa():
 
     # Method construct
-    def __init__(self, data):
+    def __init__(self, data, files):
         self.melisa_name = data["melisa"]
         self.melisa_token = data["token"]
         self.user_id = data["user"]
@@ -14,6 +14,7 @@ class RequestMelisa():
         self.user_tags = data["user_tags"]  if "user_tags" in data else {}
         self.message_tags = data["message_tags"] if "message_tags" in data else {}
         self.message_normalized = ""
+        self.files = files
 
     # Method that validate the mandatory fields for the request
     def validate_request(self):
@@ -32,10 +33,10 @@ class RequestMelisa():
         else:
             self.user_id = self.user_id.strip()
 
-        if not self.message_raw or not self.message_raw.strip():
+        if self.kind == "text" and not self.message_raw or not self.message_raw.strip():
             raise ValueError("Message is empty")
         else:
-            if self.kind == "text":
-                self.message_normalized = self.message_raw.strip().replace("_"," ")
-            else:
-                self.message_normalized = self.message_raw.strip()
+            self.message_normalized = self.message_raw.strip().replace("_"," ")
+
+        if self.kind != "text" and len(self.files) == 0:
+            raise ValueError("File is empty")

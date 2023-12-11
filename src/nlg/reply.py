@@ -5,10 +5,8 @@ class ReplyKindEnum(Enum):
     HELP = 2
     BYE = 3
     THANKS = 4
-    RECEIVED_OK = 5
-    RECEIVED_ERROR = 6
-    NEW_USER = 7
-    WAIT = 8
+    NEW_USER = 5
+    WAIT = 6
 
 class ReplyErrorEnum(Enum):
     MISSING_LOCALITIES = 1
@@ -37,6 +35,10 @@ class ReplyForecastEnum(Enum):
     YIELD_PERFORMANCE = 2
     YIELD_DATE = 3
 
+class ReplyFormEnum(Enum):
+    QUESTION = 1
+    RECEIVED_OK = 2
+    RECEIVED_ERROR = 3
 
 class Reply():
 

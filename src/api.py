@@ -1,3 +1,4 @@
+import os
 import flask
 from flask import request,Response
 import requests
@@ -8,6 +9,7 @@ from melisa_orm import Melisa, User, Thread, ThreadEnum, Chat, Form, ChatWhomEnu
 
 from policy_management.policy_intent import PolicyIntent
 from policy_management.policy_command import PolicyCommand
+from policy_management.policy_forms import PolicyForms
 from policy_management.policy_qa import PolicyQA
 
 from nlu.enums import Intent, Commands
@@ -54,7 +56,8 @@ def send_message(req,melisa,messages):
 @cross_origin()
 def api_query():
     data = request.get_json()
-    req = RequestMelisa(data)
+    files = request.files
+    req = RequestMelisa(data,files)
     try:
         req.validate_request()
         # Validate if melisa exists into the database
@@ -79,12 +82,18 @@ def api_query():
                 # Detect the intention
                 p_intent = PolicyIntent(nlu=nlu_o)
                 all_forms = Form.objects()
-                int_detected = p_intent.detection(req.message_normalized, all_forms=all_forms)
+                int_detected = None
+                slots = []
+                # If message is text we detect the intention
+                if kind_msg == ChatKindEnum.TEXT:
+                    int_detected = p_intent.detection(req.message_normalized, all_forms=all_forms)
+                    slots = int_detected.slots
 
                 # Get latest thread and check what the chatbot should do
                 current_thread = None
                 recent_chats = []
                 last_thread = Thread.objects(user=user).order_by('-id').first()
+                now = datetime.datetime.now()
 
                 # Validate if the last thread is still opened
                 if last_thread and last_thread.status == ThreadEnum.OPENED:
@@ -93,15 +102,31 @@ def api_query():
                 else:
                     # If the latest thread is not or is closed, we create a new thread for this request
                     new_intent = Intent(id =1, name="", group= 1)
-                    current_thread = Thread(user = user, intent = new_intent, status = ThreadEnum.OPENED)
+                    current_thread = Thread(user = user, intent = new_intent, status = ThreadEnum.OPENED, date = now)
                     current_thread.save()
 
-                chat = Chat(thread=current_thread, date = datetime.datetime.now(),
-                                original = req.message_raw, text = req.message_normalized,
-                                status = ChatStatusEnum.PENDING, kind_msg = ChatKindEnum(req.kind),
-                                whom = ChatWhomEnum.USER, ext_id = req.chat_id,
-                                slots = int_detected.slots, tags=req.message_tags)
+                kind_msg = ChatKindEnum(req.kind)
+                chat = Chat(thread=current_thread, date = now,
+                            original = req.message_raw, text = req.message_normalized,
+                            status = ChatStatusEnum.PENDING, kind_msg = kind_msg,
+                            whom = ChatWhomEnum.USER, ext_id = req.chat_id,
+                            slots = slots, tags=req.message_tags)
 
+                # Check if the message is media
+                if kind_msg == ChatKindEnum.IMAGE:
+                    path_media = os.path.join(config['FOLDER_MEDIA'],current_thread.date.strftime("%Y%m%d"),current_thread.intent.name,str(current_thread.id))
+                    os.makedirs(path_media, exist_ok=True)
+                    total = 0
+                    for idx, media in enumerate(req.files):
+                        path_file = os.path.join(path_media,media.filename)
+                        media.save(path_file)
+                        slots.append({"media" + str(idx):path_file})
+                        total = total + 1
+                    slots.append({"total":total})
+                    # Set the new slots for media messages
+                    chat.slots = slots
+
+                # Using policy depending the
                 if last_thread.intent.group == IntentGroupEnum.COMMAND:
                     policy = PolicyCommand()
                     answers.extend(policy.process(current_thread, chat))
@@ -112,85 +137,11 @@ def api_query():
                     policy = PolicyQA(config["ACLIMATE_API"],",".join(melisa.countries))
                     answers.extend(policy.process(current_thread, chat, recent_chats))
                 elif last_thread.intent.group == IntentGroupEnum.FORM:
-                    policy
+                    policy = PolicyForms()
+                    answers.extend(policy.process(current_thread, chat, recent_chats))
 
-                # message
-                policy = PolicyManagement()
-
-                # Create chat
-                chat = Chat(user = user, text = message, date = datetime.datetime.now(), ext_id = chat_id, tags=message_tags)
-                chat.save()
-
-                answer = []
-                # Check some especial words
-                if message.lower().startswith(("hola", "hi")) and say_hi:
-                    answer.append(NER(Commands.HI))
-                    chat.intent_id = 6
-                    chat.intent_name = "hi"
-                    chat.slots = {}
-                    chat.save()
-                elif message.lower().startswith(("bye", "adios", "chao")):
-                    answer.append(NER(Commands.BYE))
-                    chat.intent_id = 7
-                    chat.intent_name = "bye"
-                    chat.slots = {}
-                    chat.save()
-                elif message.lower().startswith(("help","ayuda","command", "comando")):
-                    answer.append(NER(Commands.HELP))
-                    chat.intent_id = 8
-                    chat.intent_name = "help"
-                    chat.slots = {}
-                    chat.save()
-                elif message.lower().startswith(("thank","gracias")):
-                    answer.append(NER(Commands.THANKS))
-                    chat.intent_id = 9
-                    chat.intent_name = "thanks"
-                    chat.slots = {}
-                    chat.save()
-                # It is for agrilac project
-                elif message.lower().startswith("dato preliminar"):
-                    if agrilac.dato_preliminar(message) == "ok":
-                        answer.append(NER(Commands.RECEIVED_OK))
-                    else:
-                        answer.append(NER(Commands.RECEIVED_ERROR))
-                    chat.intent_id = 10
-                    chat.intent_name = "agrilac"
-                    chat.slots = {}
-                    chat.save()
-                else:
-                    # Temporal message
-                    if say_wait:
-                        rb_tmp = {"user_id": user_id, "token": melisa.token, "message_tags":message_tags, "chat_id":chat_id, "text": ["Estoy buscando la información solicitada"]}
-                        response = requests.post(melisa.url_post,json=rb_tmp)
-                    # Se revisa que diga hola este en true, sino quiere decir que este es un saludo inicial
-                    if say_hi:
-                        # Decoded message
-                        utterance = nlu_o.nlu(message)
-                        print(utterance)
-                        # Update chat
-                        chat.intent_id = utterance["intent"]
-                        chat.intent_name = utterance["name"]
-                        chat.slots = utterance["slots"]
-                        chat.save()
-
-                        intent = Intent(utterance["intent"])
-                        entities = utterance["slots"]
-
-                        if(intent == Intent.PLACES):
-                            answer = policy.geographic(entities)
-                        elif(intent == Intent.CULTIVARS):
-                            answer = policy.cultivars(entities)
-                        elif(intent == Intent.CLIMATOLOGY):
-                            answer = policy.historical_climatology(entities)
-                        elif(intent == Intent.FORECAST_PRECIPITATION):
-                            answer = policy.forecast_climate(entities)
-                        elif(intent == Intent.FORECAST_YIELD):
-                            answer = policy.forecast_yield(entities)
-                        elif(intent == Intent.FORECAST_DATE):
-                            answer = policy.forecast_yield(entities, best_date=True)
-
-                answers = Generator.print(answer)
-                request_body = {"user_id": user_id, "token": melisa.token, "message_tags":message_tags, "chat_id":chat_id, "text": answers}
+                answers_generated = Generator.print(answers)
+                request_body = {"user_id": melisa.user_id, "token": melisa.token, "message_tags":melisa.message_tags, "chat_id":melisa.chat_id, "text": answers_generated}
                 response = requests.post(melisa.url_post,json=request_body)
                 return Response("Ok",200)
             else:

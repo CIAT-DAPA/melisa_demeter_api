@@ -1,6 +1,6 @@
 from policy_intent import PolicyKnownEnum
-from nlg.reply import ReplyKindEnum, Reply, ReplyErrorEnum
-from melisa_orm import ThreadEnum, ChatStatusEnum,ChatWhomEnum
+from nlg.reply import Reply, ReplyErrorEnum
+from melisa_orm import ThreadEnum, ChatStatusEnum
 from aclimate.aclimate import AClimate
 
 class PolicyQA():

@@ -30,7 +30,7 @@ class AgriLac:
 
     # Method that save information into sheet in google
     # (dataframe) text: Text that should be saved in the document
-    def dato_preliminar(self, text):
+    def insert_data(self, text):
         data = text.splitlines()
         df = pd.DataFrame(data)
         answer = "ok"
@@ -41,4 +41,3 @@ class AgriLac:
             answer = "error"
             print(f"Unexpected {err=}, {type(err)=}")
         return answer
-        

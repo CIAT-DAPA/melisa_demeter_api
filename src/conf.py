@@ -15,6 +15,7 @@ if os.getenv('DEBUG', "true").lower() == "true":
     config['AGRILAC_KEY']=""
     config['AGRILAC_FILE']=""
     config['AGRILAC_SHEET']=""
+    config['FOLDER_MEDIA']=""
 else:
     config['DEBUG']=False
     config['PORT']=os.getenv('PORT')
@@ -28,3 +29,4 @@ else:
     config['AGRILAC_KEY']=os.getenv('AGRILAC_KEY')
     config['AGRILAC_FILE']=os.getenv('AGRILAC_FILE')
     config['AGRILAC_SHEET']=os.getenv('AGRILAC_SHEET')
+    config['FOLDER_MEDIA']=os.getenv('FOLDER_MEDIA')
