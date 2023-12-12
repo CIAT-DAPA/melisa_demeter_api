@@ -1,6 +1,0 @@
-forecast_yield
-forecast_precipitation
-climatology
-cultivars
-places
-forecast_date

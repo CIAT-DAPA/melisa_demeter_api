@@ -1,4 +1,4 @@
-from policy_intent import PolicyKnownEnum
+from policy_management.policy_intent import PolicyKnownEnum
 from nlg.reply import ReplyKindEnum, Reply
 from melisa_orm import ThreadEnum, ChatStatusEnum
 

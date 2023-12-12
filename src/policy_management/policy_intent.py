@@ -1,5 +1,5 @@
 from enum import Enum
-from intent_detected import IntentDetected
+from policy_management.intent_detected import IntentDetected
 
 # Class
 class PolicyIntentGroupEnum(Enum):
