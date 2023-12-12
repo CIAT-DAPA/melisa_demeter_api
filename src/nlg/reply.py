@@ -15,6 +15,7 @@ class ReplyErrorEnum(Enum):
     ERROR_ACLIMATE_CLIMATOLOGY = 4
     ERROR_ACLIMATE_FORECAST_CLIMATE = 5
     ERROR_ACLIMATE_FORECAST_YIELD = 6
+    QUESTION_NOT_FORMAT = 7
 
 class ReplyGeographicEnum(Enum):
     STATE = 1

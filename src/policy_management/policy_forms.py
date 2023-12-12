@@ -40,7 +40,7 @@ class PolicyForms():
                         # If the question doesn't accomplish with the requirements
                         # change the status of the chat and stop
                         if not text_ok:
-                            answers.extend(Reply(ReplyErrorEnum.QUESTION_NOT_FORMAT),v.error_msg)
+                            answers.extend(Reply(ReplyErrorEnum.QUESTION_NOT_FORMAT),None,v.error_msg)
                             chat.status = ChatStatusEnum.ERROR
                             chat.save()
                             break
@@ -54,7 +54,7 @@ class PolicyForms():
                     questions_pending = [q for q, c in zip(questions, history_chats) if (q.name != c.slots["question"] and c.status == ChatStatusEnum.OK) and (q.name != chat.slots["question"] and chat.status == ChatStatusEnum.OK)]
                     # We check if still we need to ask more questions to users
                     if questions_pending:
-                        answers.extend(Reply(ReplyFormEnum.QUESTION),questions_pending[0].description, {"question":questions_pending[0].name})
+                        answers.extend(Reply(ReplyFormEnum.QUESTION),{"question":questions_pending[0].name},questions_pending[0].description)
                     # If we don't have to ask more question, we should call the API
                     else:
                         if thread.intent.name == "agrilac":
@@ -72,7 +72,7 @@ class PolicyForms():
                 print("Second message in line")
         # It is the first question
         else:
-            answers.extend(Reply(ReplyFormEnum.QUESTION),questions.first().description, {"question":questions.first().name})
+            answers.extend(Reply(ReplyFormEnum.QUESTION),{"question":questions.first().name}, questions.first().description)
             chat.status = ChatStatusEnum.OK
             chat.save()
 

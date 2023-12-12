@@ -12,14 +12,13 @@ from policy_management.policy_command import PolicyCommand
 from policy_management.policy_forms import PolicyForms
 from policy_management.policy_qa import PolicyQA
 
-from nlu.enums import Intent, Commands
 from nlu.nlu_tasks import NLUTasks
+from nlu.request_melisa import RequestMelisa
 
-from policy_management.ner import NER
-from policy_management.request_melisa import RequestMelisa
+from nlg.reply import Reply, ReplyKindEnum
 from nlg.generator import Generator
 
-from data_store.agrilac import AgriLac
+from forms.agrilac import AgriLac
 
 from conf import config
 
@@ -75,7 +74,7 @@ def api_query():
                     user.save()
                     # Sending welcome to new user
                     if melisa.say_hi:
-                        send_message(req,melisa,Generator.print([NER(Commands.NEW_USER)]))
+                        send_message(req,melisa,Generator.print([Reply(ReplyKindEnum.NEW_USER)]))
                 else:
                     user = User.objects.get(user_id=req.user_id)
 
@@ -133,13 +132,14 @@ def api_query():
                 elif last_thread.intent.group == IntentGroupEnum.QA:
                     # Validate if the melisa should answer fast and saying wait
                     if melisa.say_wait:
-                        send_message(req,melisa,Generator.print([NER(Commands.WAIT)]))
+                        send_message(req,melisa,Generator.print([Reply(ReplyKindEnum.WAIT)]))
                     policy = PolicyQA(config["ACLIMATE_API"],",".join(melisa.countries))
                     answers.extend(policy.process(current_thread, chat, recent_chats))
                 elif last_thread.intent.group == IntentGroupEnum.FORM:
                     policy = PolicyForms()
                     answers.extend(policy.process(current_thread, chat, recent_chats))
 
+                # Generate the answer to users
                 answers_generated = Generator.print(answers)
                 request_body = {"user_id": melisa.user_id, "token": melisa.token, "message_tags":melisa.message_tags, "chat_id":melisa.chat_id, "text": answers_generated}
                 response = requests.post(melisa.url_post,json=request_body)

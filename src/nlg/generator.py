@@ -1,5 +1,5 @@
 import pandas as pd
-from nlu.enums import Geographic, Cultivars, Forecast, Historical, Error, Commands
+from nlg.reply import ReplyKindEnum,ReplyErrorEnum,ReplyGeographicEnum,ReplyCultivarsEnum,ReplyHistoricalEnum,ReplyForecastEnum,ReplyFormEnum
 
 class Generator():
 
@@ -13,51 +13,48 @@ class Generator():
         if(len(answers) > 0):
             for a in answers:
                 # Commands
-                if (isinstance(a.type, Commands)):
-                    if(a.type == Commands.HI):
+                if isinstance(a.type, ReplyKindEnum):
+                    if a.type == ReplyKindEnum.HI:
                         msg.append("Hola, ¿cómo puedo ayudarte?")
-                    elif(a.type == Commands.BYE):
-                        msg.append("Chao :)")
-                    elif(a.type == Commands.HELP):
+                    elif a.type == ReplyKindEnum.HELP:
                         msg.append("Puedes preguntarme sobre información histórica de clima, también sobre predicción de clima y producción de cultivos")
                         msg.append("Si quieres saber que localidades hay disponibles podrías preguntar algo como: Municipios disponibles")
                         msg.append("Si quieres saber sobre que cultivos hay disponibles, podrías intentar algo como: ¿Qué cultivos hay disponibles?")
                         msg.append("Si quieres saber sobre como será el clima para la próxima temporada, podrías intentar algo como: ¿Cuál es el pronóstico climático para Palmira?")
                         msg.append("Si quieres saber sobre como será el rendimiento de algún cultivo, podrías intentar algo como: ¿Cuál es la predicción de rendimiento para maíz en Cerete?")
                         msg.append("Tranquil@, pregunta como quieras, Yo estoy para ayudarte")
-                    elif(a.type == Commands.RECEIVED_OK):
-                        msg.append("Recibido")
-                    elif(a.type == Commands.RECEIVED_ERROR):
-                        msg.append("Error al registrar")
-                    elif(a.type == Commands.NEW_USER):
+                    elif a.type == ReplyKindEnum.BYE:
+                        msg.append("Chao :)")
+                    elif a.type == ReplyKindEnum.THANKS:
+                        msg.append("Con mucho gusto")
+                    elif a.type == ReplyKindEnum.NEW_USER:
                         msg.append("Hola, soy Melisa, un bot que provee información climática y agroclimática")
                         msg.append("Si no sabes como iniciar enviame el mensaje: ayuda")
-                        msg.append("Si requieres información general enviame el mensaje: info")
-                    else:
-                        msg.append("Con mucho gusto")
+                    elif a.type == ReplyKindEnum.WAIT:
+                        msg.append("Estoy procesando tu solicitud")
                 # Geographic answers
-                elif (isinstance(a.type, Geographic)):
-                    if(a.type == Geographic.STATE):
+                elif (isinstance(a.type, ReplyGeographicEnum)):
+                    if(a.type == ReplyGeographicEnum.STATE):
                         msg.append("Los departamentos disponibles son: " + ', '.join(a.values))
-                    elif(a.type == Geographic.MUNICIPALITIES_STATE):
+                    elif(a.type == ReplyGeographicEnum.MUNICIPALITIES_STATE):
                         msg.append("Los municipios para el departamento " + a.tag + " disponibles son: " + ', '.join(a.values))
-                    elif(a.type == Geographic.WS_MUNICIPALITY):
+                    elif(a.type == ReplyGeographicEnum.WS_MUNICIPALITY):
                         msg.append("Las estaciones climáticas para el municipio " + a.tag + " disponibles son: " + ', '.join(a.values))
-                    else:
+                    elif(a.type == ReplyGeographicEnum.WEATHER_STATION):
                         msg.append("En el municipio " + a.tag + " están las estaciones: " +  ', '.join(a.values))
                 # Cultivars answers
-                elif (isinstance(a.type, Cultivars)):
-                    if(a.type == Cultivars.CROP_MULTIPLE):
+                elif (isinstance(a.type, ReplyCultivarsEnum)):
+                    if(a.type == ReplyCultivarsEnum.CROP_MULTIPLE):
                         #msg.append("Los cultivos disponibles son: " + ', '.join(a.values))
                         msg.append("Los cultivos disponibles son: " + 'Arroz y Maíz')
-                    elif(a.type == Cultivars.CROP_CULTIVAR):
+                    elif(a.type == ReplyCultivarsEnum.CROP_CULTIVAR):
                         msg.append("Las variedades para el cultivo " + a.tag + " disponibles son: " + ', '.join(a.values))
-                    else:
+                    elif(a.type == ReplyCultivarsEnum.CULTIVARS_MULTIPLE):
                         msg.append("Las variedades similares a " + a.tag + " disponibles son: " + ', '.join(a.values))
                 # Historical answers
-                elif (isinstance(a.type, Historical)):
+                elif (isinstance(a.type, ReplyHistoricalEnum)):
                     # Climatology answers
-                    if(a.type == Historical.CLIMATOLOGY):
+                    if(a.type == ReplyHistoricalEnum.CLIMATOLOGY):
                         # Get ws ids
                         ws_id = a.values.loc[:,"ws_id"].unique()
                         for ws in ws_id:
@@ -84,9 +81,9 @@ class Generator():
                                 m = m[:-2] + ". "
                             msg.append(m)
                 # Forecast answer
-                elif (isinstance(a.type, Forecast)):
+                elif (isinstance(a.type, ReplyForecastEnum)):
                     # Climate answers
-                    if(a.type == Forecast.CLIMATE):
+                    if(a.type == ReplyForecastEnum.CLIMATE):
                         # Get ws ids
                         ws_id = a.values.loc[:,"ws_id"].unique()
                         for ws in ws_id:
@@ -104,7 +101,7 @@ class Generator():
                                 #msg.append(m)
                             msg.append(m)
                     # yield answers
-                    elif a.type == Forecast.YIELD_PERFORMANCE:
+                    elif a.type == ReplyForecastEnum.YIELD_PERFORMANCE:
                         # Get ws ids
                         ws_id = a.values.loc[:,"ws_id"].unique()
                         for ws in ws_id:
@@ -127,7 +124,7 @@ class Generator():
                                     #msg.append(m)
                                 msg.append(m)
                     # yield answers
-                    elif a.type == Forecast.YIELD_DATE:
+                    elif a.type == ReplyForecastEnum.YIELD_DATE:
                         # Get ws ids
                         ws_id = a.values.loc[:,"ws_id"].unique()
                         for ws in ws_id:
@@ -141,31 +138,35 @@ class Generator():
                                     m = m + "la variedad " + getattr(ccd, "cu_name") + ", en un suelo " +  getattr(ccd, "so_name") + " "
                                     m = m + "y sembrando en " + str(getattr(ccd, "start"))[:-10] + " "
                                     m = m + " puedes obtener en promedio: " + str(round(getattr(ccd, "avg"),decimals)) + " kg/ha. "
-                                    #m = m + " variando con máx. de: " + str(round(getattr(ccd, "max"),2)) + " kg/ha"
-                                    #m = m + " y un mín. de: " + str(round(getattr(ccd, "min"),2)) + " kg/ha"
                                 msg.append(m)
+                # Message Form
+                elif (isinstance(a.type, ReplyFormEnum)):
+                    if(a.type == ReplyFormEnum.RECEIVED_OK):
+                        msg.append("Recibido")
+                    elif(a.type == ReplyFormEnum.RECEIVED_ERROR):
+                        msg.append("Error al registrar")
+                    elif(a.type == ReplyFormEnum.QUESTION):
+                        msg.append(a.tag)
+
                 # Message error
-                elif (isinstance(a.type, Error)):
+                elif (isinstance(a.type, ReplyErrorEnum)):
                     # Missing geographic
-                    if(a.type == Error.MISSING_GEOGRAPHIC):
-                        msg.append("Lo sentimos, no encontramos una localidad en su solicitud. Por favor intente especificando un municipio, también puedes preguntarme sobre los municipios disponibles")
+                    if(a.type == ReplyErrorEnum.MISSING_LOCALITIES):
+                        msg.append("Lo sentimos, no encontramos una localidad en su solicitud. Por favor ingresa el nombre de la localidad")
                     # Locality not found
-                    elif(a.type == Error.LOCALITY_NOT_FOUND):
+                    elif(a.type == ReplyErrorEnum.LOCALITY_NOT_FOUND):
                         msg.append("Lo sentimos, actualmente no tenemos la localidad: " + a.tag + " disponible en la base de datos")
                     # Locality not found
-                    elif(a.type == Error.MISSING_ENTITIES):
-                        msg.append("Lo sentimos, su consulta no pudo ser procesada. Por favor intenta preguntando de otra manera")
-                    # Locality not found
-                    elif(a.type == Error.ERROR_ACLIMATE):
-                        msg.append("Lo sentimos, su consulta no pudo ser procesada. No se logro conectar con el servicio de Aclimate")
-                    elif(a.type == Error.ERROR_ACLIMATE_CLIMATOLOGY):
-                        msg.append("Lo sentimos, no hay información de climatología para la localidad de: " + a.tag + " en Aclimate")
-                    elif(a.type == Error.ERROR_ACLIMATE_FORECAST_CLIMATE):
-                        msg.append("Lo sentimos, no hay información de predicción climática para la localidad de: " + a.tag + " en Aclimate")
-                    elif(a.type == Error.ERROR_ACLIMATE_FORECAST_YIELD):
-                        msg.append("Lo sentimos, no hay información de pronóstico de cultivo de para la localidad de: " + a.tag + " en Aclimate")
-                    elif(a.type == Error.MISSING_CROP_CULTIVAR):
-                        msg.append("Lo sentimos, no encontramos un cultivo o un cultivar en su solicitud. Por favor intente especificando un cultivo o cultivar, también puede preguntarme sobre los cultivares disponibles")
+                    elif(a.type == ReplyErrorEnum.ERROR_ACLIMATE):
+                        msg.append("Lo sentimos, su consulta no pudo ser procesada. No se logró conectar con el servicio de AClimate")
+                    elif(a.type == ReplyErrorEnum.ERROR_ACLIMATE_CLIMATOLOGY):
+                        msg.append("Lo sentimos, no hay información de climatología para la localidad de: " + a.tag + " en AClimate")
+                    elif(a.type == ReplyErrorEnum.ERROR_ACLIMATE_FORECAST_CLIMATE):
+                        msg.append("Lo sentimos, no hay información de predicción climática para la localidad de: " + a.tag + " en AClimate")
+                    elif(a.type == ReplyErrorEnum.ERROR_ACLIMATE_FORECAST_YIELD):
+                        msg.append("Lo sentimos, no hay información de pronóstico de cultivo de para la localidad de: " + a.tag + " en AClimate")
+                    elif(a.type == ReplyErrorEnum.QUESTION_NOT_FORMAT):
+                        msg.append(a.tag)
         else:
             msg.append('Lo sentimos, su consulta no pudo ser procesada, por favor intente de nuevo')
         return msg

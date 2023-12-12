@@ -2,7 +2,6 @@ import os
 from transformers import BertTokenizer
 import tensorflow as tf
 from tensorflow import keras
-from nlu.enums import Intent, Slot
 
 
 class NLUTasks:
