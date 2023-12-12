@@ -9,7 +9,7 @@ if os.getenv('DEBUG', "true").lower() == "true":
     config['MODEL_PATH']='D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\demeter'
     config['PARAMS_PATH']='D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\vocab'
     config['ACLIMATE_API']='https://webapi.aclimate.org/api/'
-    config['CONNECTION_DB']='mongodb://root:s3cr3t@localhost:27017/demeter?authSource=admin'
+    config['CONNECTION_DB']='mongodb://root:s3cr3t@localhost:27017/melisa?authSource=admin'
     config['COUNTRIES']='61e59d829d5d2486e18d2ea8'
     config['ENABLE_REGISTER_MELISA']=True
     config['AGRILAC_KEY']=""

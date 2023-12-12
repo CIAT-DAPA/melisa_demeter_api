@@ -4,6 +4,7 @@ from flask import request,Response
 import requests
 import datetime
 from flask_cors import cross_origin
+from mongoengine import *
 
 from melisa_orm import Melisa, User, Thread, ThreadEnum, Chat, Form, ChatWhomEnum, ChatStatusEnum, ChatKindEnum, Intent, IntentGroupEnum
 
