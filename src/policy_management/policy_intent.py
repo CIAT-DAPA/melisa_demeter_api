@@ -57,7 +57,7 @@ class PolicyIntent():
                 id = form_found[0].ext_id
             else:
                 group = PolicyIntentGroupEnum.QA
-                utterance = nlu.nlu(msg)
+                utterance = self.nlu.nlu(msg)
                 detected = utterance["name"]
                 id = PolicyKnownEnum(utterance["name"].upper())
                 slots = utterance["slots"]

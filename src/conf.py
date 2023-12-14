@@ -6,8 +6,8 @@ if os.getenv('DEBUG', "true").lower() == "true":
     config['DEBUG']=True
     config['PORT']=3000
     config['HOST']='localhost'
-    config['MODEL_PATH']='D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\demeter'
-    config['PARAMS_PATH']='D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\vocab'
+    config['MODEL_PATH']='D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\old\\demeter'
+    config['PARAMS_PATH']='D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\old\\vocab'
     config['ACLIMATE_API']='https://webapi.aclimate.org/api/'
     config['CONNECTION_DB']='mongodb://root:s3cr3t@localhost:27017/melisa?authSource=admin'
     config['COUNTRIES']='61e59d829d5d2486e18d2ea8'

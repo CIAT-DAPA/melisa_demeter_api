@@ -91,11 +91,12 @@
 # chat.save() 
 # print(chat)
 
-from transformers import BertTokenizer
-import tensorflow as tf
-from tensorflow import keras
-from nlu.nlu_tasks import NLUTasks
-from nlu.enums import Intent, Geographic, Cultivars, Commands
+#from transformers import BertTokenizer
+#import tensorflow as tf
+#from tensorflow import keras
+#from nlu.nlu_tasks import NLUTasks
+#from conf import config
+#from nlu.enums import Intent, Geographic, Cultivars, Commands
 
 """
 print("Loading tokenizer")
@@ -158,12 +159,13 @@ def nlu(text, tokenizer, my_model, intent_names, slot_names):
     return decode_predictions(text, tokenizer, intent_names, slot_names,intent_id, slot_ids)
 """
 
+from nlu.nlu_tasks import NLUTasks
+from conf import config
+
 print("Loading model")
-nlu  = NLUTasks(model_path = "/home/hsotelo/demeter/demeter", params_path = "/home/hsotelo/demeter/service/vocab")    
+nlu_o  = NLUTasks(model_path = config['MODEL_PATH'], params_path = config['PARAMS_PATH'])
 
 oraciones = ["Cual es la mejor variedad para sembrar en Tolima", "climatologia en ibague", "lluvias en tolima", "mejor cultivar de arroz en Cerete"]
 for o in oraciones:
     print(o)
-    #print(model2.predict(o))    
-    #print(nlu(o,tokenizer, model2, intent_names, slot_names))
-    print(nlu.nlu(o))
+    print(nlu_o.nlu(o))
