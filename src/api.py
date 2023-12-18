@@ -1,5 +1,6 @@
 import os
 import flask
+import traceback
 from flask import request,Response
 import requests
 import datetime
@@ -33,22 +34,9 @@ agrilac = None
 def home():
     return "<h1>Demeter Bot</h1>"
 
-# Register melisa
-@app.route('/api/v1/melisa/', methods=['GET'])
-def register_melisa():
-    if config['ENABLE_REGISTER_MELISA']:
-        name = request.args.get("name")
-        if not Melisa.objects(name=name) :
-            melisa = Melisa(name = name, url_post = request.args.get("url_post"), token = request.args.get("token"))
-            melisa.save()
-            return "OK"
-        else:
-            return "ERROR"
-    else:
-        return "Not enable"
-
 def send_message(req,melisa,messages):
     request_body = {"user_id": req.user_id, "token": melisa.token, "message_tags":req.message_tags, "chat_id":req.chat_id, "text": messages}
+    print(request_body)
     response = requests.post(melisa.url_post,json=request_body)
 
 # A route to return all of the available entries in our catalog.
@@ -56,11 +44,12 @@ def send_message(req,melisa,messages):
 @cross_origin()
 def api_query():
     data = request.get_json()
-    print(data)
-    files = request.files
+    #print(data)
+    files = request.files if request.files else None
     req = RequestMelisa(data,files)
     try:
         req.validate_request()
+        #print("validate", req)
         # Validate if melisa exists into the database
         if not Melisa.objects(name=req.melisa_name):
             return Response("Melisa unknown",400)
@@ -76,7 +65,8 @@ def api_query():
                     user.save()
                     # Sending welcome to new user
                     if melisa.say_hi:
-                        send_message(req,melisa,Generator.print([Reply(ReplyKindEnum.NEW_USER)]))
+                        an_sys = Generator.print([Reply(ReplyKindEnum.NEW_USER)])
+                        send_message(req,melisa,an_sys[0].messages)
                 else:
                     user = User.objects.get(user_id=req.user_id)
 
@@ -84,9 +74,10 @@ def api_query():
                 p_intent = PolicyIntent(nlu=nlu_o)
                 all_forms = Form.objects()
                 int_detected = None
-                slots = []
+                slots = {}
                 # If message is text we detect the intention
-                if kind_msg == ChatKindEnum.TEXT:
+                #print("kind",req.kind, req.kind_msg == ChatKindEnum.TEXT)
+                if req.kind_msg == ChatKindEnum.TEXT:
                     int_detected = p_intent.detection(req.message_normalized, all_forms=all_forms)
                     slots = int_detected.slots
 
@@ -103,8 +94,8 @@ def api_query():
                 # If the latest thread is not or is closed, we create a new thread for this request
                 else:
                     new_intent = None
-                    if kind_msg == ChatKindEnum.TEXT:
-                        new_intent = Intent(id = int_detected.id, name=int_detected.detected, group= int_detected.group)
+                    if req.kind_msg == ChatKindEnum.TEXT:
+                        new_intent = Intent(id = int_detected.id.value, name=int_detected.detected, group= int_detected.group)
                     else:
                         new_intent = Intent(id = 0, name="", group= IntentGroupEnum.UNKONW)
                     current_thread = Thread(user = user, intent = new_intent, status = ThreadEnum.OPENED, date = now)
@@ -118,7 +109,7 @@ def api_query():
                             slots = slots, tags=req.message_tags)
 
                 # Check if the message is media
-                if kind_msg == ChatKindEnum.IMAGE:
+                if req.kind_msg == ChatKindEnum.IMAGE:
                     path_media = os.path.join(config['FOLDER_MEDIA'],current_thread.date.strftime("%Y%m%d"),current_thread.intent.name,str(current_thread.id))
                     os.makedirs(path_media, exist_ok=True)
                     total = 0
@@ -138,7 +129,9 @@ def api_query():
                 elif last_thread.intent.group == IntentGroupEnum.QA:
                     # Validate if the melisa should answer fast and saying wait
                     if melisa.say_wait:
-                        send_message(req,melisa,Generator.print([Reply(ReplyKindEnum.WAIT)]))
+                        an_sys = Generator.print([Reply(ReplyKindEnum.WAIT)])
+                        print(an_sys)
+                        send_message(req,melisa,an_sys[0].messages)
                     policy = PolicyQA(config["ACLIMATE_API"],",".join(melisa.countries))
                     answers.extend(policy.process(current_thread, chat, recent_chats))
                 elif last_thread.intent.group == IntentGroupEnum.FORM:
@@ -152,18 +145,22 @@ def api_query():
                 for ag in answers_generated:
                     for m in ag.messages:
                         chat_sys = Chat(thread=current_thread, date = now2,
-                                original = ag.type, text = m,
+                                original = str(ag.type), text = m,
                                 status = ChatStatusEnum.OK, kind_msg = ChatKindEnum.TEXT,
                                 whom = ChatWhomEnum.SYSTEM, ext_id = req.chat_id,
                                 slots = ag.slots, tags=req.message_tags)
                         chat_sys.save()
                         text_generated.append(m)
-                request_body = {"user_id": melisa.user_id, "token": melisa.token, "message_tags":melisa.message_tags, "chat_id":melisa.chat_id, "text": text_generated}
-                response = requests.post(melisa.url_post,json=request_body)
+                send_message(req,melisa,text_generated)
+                #request_body = {"user_id": req.user_id, "token": melisa.token, "message_tags":req.message_tags, "chat_id":req.chat_id, "text": text_generated}
+                #response = requests.post(melisa.url_post,json=request_body)
                 return Response("Ok",200)
             else:
                 return Response("Melisa Unauthorized",401)
+    #except Exception as e:
     except ValueError as e:
+        print("error",e)
+        traceback.print_exc()
         return Response("Request incomplete",401)
 
 

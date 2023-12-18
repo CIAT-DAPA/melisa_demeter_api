@@ -15,12 +15,12 @@ class PolicyCommand():
         # Close the thread
         thread.status = ThreadEnum.CLOSED
         thread.save()
-        if thread.intent.id == PolicyKnownEnum.HI:
+        if PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.HI:
             answers.append(Reply(ReplyKindEnum.HI))
-        elif thread.intent.id == PolicyKnownEnum.BYE:
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.BYE:
             answers.append(Reply(ReplyKindEnum.BYE))
-        elif thread.intent.id == PolicyKnownEnum.HELP:
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.HELP:
             answers.append(Reply(ReplyKindEnum.HELP))
-        elif thread.intent.id == PolicyKnownEnum.THANKS:
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.THANKS:
             answers.append(Reply(ReplyKindEnum.THANKS))
         return answers

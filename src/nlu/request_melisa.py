@@ -1,5 +1,6 @@
 
 import re
+from melisa_orm import ChatKindEnum
 
 class RequestMelisa():
 
@@ -10,6 +11,7 @@ class RequestMelisa():
         self.user_id = data["user"]
         self.message_raw = data["message"]
         self.kind = data["kind"] if "kind" in data else "text"
+        self.kind_msg = ChatKindEnum(self.kind)
         self.chat_id = data["chat_id"] if "chat_id" in data else ""
         self.user_tags = data["user_tags"]  if "user_tags" in data else {}
         self.message_tags = data["message_tags"] if "message_tags" in data else {}

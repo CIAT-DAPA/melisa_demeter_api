@@ -20,7 +20,7 @@ class PolicyQA():
     def process(self, thread, chat, history_chats):
         answers = []
 
-        if thread.intent.id == PolicyKnownEnum.PLACES:
+        if PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.PLACES:
             # Check if the current message has the data needed
             if "locality" in chat.slots:
                 answers.extend(self.aclimate_client.geographic(chat.slots["locality"]))
@@ -34,13 +34,13 @@ class PolicyQA():
                 answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
                 chat.save()
 
-        elif thread.intent.id == PolicyKnownEnum.CULTIVARS:
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.CULTIVARS:
             crop = chat.slots["crop"] if "crop" in chat.slots else None
             cultivar = chat.slots["cultivar"] if "cultivar" in chat.slots else None
             answers.extend(self.aclimate_client.cultivars(crop,cultivar))
             self.close_thread(thread)
 
-        elif thread.intent.id == PolicyKnownEnum.CLIMATOLOGY:
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.CLIMATOLOGY:
             # Check if the current message has the data needed
             if "locality" in chat.slots:
                 answers.extend(self.aclimate_client.historical_climatology(chat.slots["locality"]))
@@ -54,7 +54,7 @@ class PolicyQA():
                 answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
                 chat.save()
 
-        elif thread.intent.id == PolicyKnownEnum.FORECAST_PRECIPITATION:
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_PRECIPITATION:
             # Check if the current message has the data needed
             if "locality" in chat.slots:
                 answers.extend(self.aclimate_client.forecast_climate(chat.slots["locality"]))
@@ -68,8 +68,8 @@ class PolicyQA():
                 answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
                 chat.save()
 
-        elif thread.intent.id == PolicyKnownEnum.FORECAST_YIELD or thread.intent.id == PolicyKnownEnum.FORECAST_DATE:
-            best_date = False if thread.intent.id == PolicyKnownEnum.FORECAST_YIELD else True
+        elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_YIELD or PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_DATE:
+            best_date = False if PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_YIELD else True
             cultivar = chat.slots["cultivar"] if "cultivar" in chat.slots else None
             crop = chat.slots["crop"] if "crop" in chat.slots else None
             # Check if the current message has the data needed
