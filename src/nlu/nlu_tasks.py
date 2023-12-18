@@ -11,8 +11,8 @@ class NLUTasks:
         self.model_name = model_name
 
         # Load model
-        #self.model = tf.saved_model.load(self.model_path)
-        self.model = tf.keras.models.load_model(self.model_path)
+        self.model = tf.saved_model.load(self.model_path)
+        #self.model = tf.keras.models.load_model(self.model_path)
         self.tokenizer = BertTokenizer.from_pretrained(self.model_name)
 
         # Load Intents

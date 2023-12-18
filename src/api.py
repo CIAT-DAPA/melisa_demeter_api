@@ -56,6 +56,7 @@ def send_message(req,melisa,messages):
 @cross_origin()
 def api_query():
     data = request.get_json()
+    print(data)
     files = request.files
     req = RequestMelisa(data,files)
     try:
@@ -99,9 +100,13 @@ def api_query():
                 if last_thread and last_thread.status == ThreadEnum.OPENED:
                     current_thread = last_thread
                     recent_chats = Chat.objects(thread = last_thread).order_by('-id')
+                # If the latest thread is not or is closed, we create a new thread for this request
                 else:
-                    # If the latest thread is not or is closed, we create a new thread for this request
-                    new_intent = Intent(id =1, name="", group= 1)
+                    new_intent = None
+                    if kind_msg == ChatKindEnum.TEXT:
+                        new_intent = Intent(id = int_detected.id, name=int_detected.detected, group= int_detected.group)
+                    else:
+                        new_intent = Intent(id = 0, name="", group= IntentGroupEnum.UNKONW)
                     current_thread = Thread(user = user, intent = new_intent, status = ThreadEnum.OPENED, date = now)
                     current_thread.save()
 
@@ -142,7 +147,18 @@ def api_query():
 
                 # Generate the answer to users
                 answers_generated = Generator.print(answers)
-                request_body = {"user_id": melisa.user_id, "token": melisa.token, "message_tags":melisa.message_tags, "chat_id":melisa.chat_id, "text": answers_generated}
+                text_generated = []
+                now2 = datetime.datetime.now()
+                for ag in answers_generated:
+                    for m in ag.messages:
+                        chat_sys = Chat(thread=current_thread, date = now2,
+                                original = ag.type, text = m,
+                                status = ChatStatusEnum.OK, kind_msg = ChatKindEnum.TEXT,
+                                whom = ChatWhomEnum.SYSTEM, ext_id = req.chat_id,
+                                slots = ag.slots, tags=req.message_tags)
+                        chat_sys.save()
+                        text_generated.append(m)
+                request_body = {"user_id": melisa.user_id, "token": melisa.token, "message_tags":melisa.message_tags, "chat_id":melisa.chat_id, "text": text_generated}
                 response = requests.post(melisa.url_post,json=request_body)
                 return Response("Ok",200)
             else:
@@ -168,5 +184,6 @@ if __name__ == "__main__":
         app.run(threaded=True, port=config['PORT'], debug=config['DEBUG'])
     else:
         app.run(host=config['HOST'], port=config['PORT'], debug=config['DEBUG'])
+        #app.run(host=config['HOST'], port=config['PORT'], debug=True)
 
 # nohup python api.py > demeter.log 2>&1 &
