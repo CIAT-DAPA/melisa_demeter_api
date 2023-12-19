@@ -35,7 +35,7 @@ class RequestMelisa():
         else:
             self.user_id = self.user_id.strip()
 
-        if self.kind == "text" and not self.message_raw or not self.message_raw.strip():
+        if self.kind == "text" and (not self.message_raw or not self.message_raw.strip()):
             raise ValueError("Message is empty")
         else:
             self.message_normalized = self.message_raw.strip().replace("_"," ")

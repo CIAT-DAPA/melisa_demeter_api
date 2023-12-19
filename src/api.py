@@ -9,7 +9,7 @@ from mongoengine import *
 
 from melisa_orm import Melisa, User, Thread, ThreadEnum, Chat, Form, ChatWhomEnum, ChatStatusEnum, ChatKindEnum, Intent, IntentGroupEnum
 
-from policy_management.policy_intent import PolicyIntent
+from policy_management.policy_intent import PolicyIntent,PolicyKnownEnum
 from policy_management.policy_command import PolicyCommand
 from policy_management.policy_forms import PolicyForms
 from policy_management.policy_qa import PolicyQA
@@ -36,15 +36,20 @@ def home():
 
 def send_message(req,melisa,messages):
     request_body = {"user_id": req.user_id, "token": melisa.token, "message_tags":req.message_tags, "chat_id":req.chat_id, "text": messages}
-    print(request_body)
+    #print(request_body)
     response = requests.post(melisa.url_post,json=request_body)
 
 # A route to return all of the available entries in our catalog.
 @app.route('/api/v1/query/', methods=['POST'])
 @cross_origin()
 def api_query():
-    data = request.get_json()
-    #print(data)
+    #data = request.get_json()
+    data = request.form.to_dict()
+    #print("Request Content:", content)
+    #print("original json",request.json)
+    #print("json",data)
+    #print("data",)
+    #print("melisa",data["melisa"])
     files = request.files if request.files else None
     req = RequestMelisa(data,files)
     try:
@@ -95,9 +100,9 @@ def api_query():
                 else:
                     new_intent = None
                     if req.kind_msg == ChatKindEnum.TEXT:
-                        new_intent = Intent(id = int_detected.id.value, name=int_detected.detected, group= int_detected.group)
+                        new_intent = Intent(id = int_detected.id, name=int_detected.detected, group= int_detected.group)
                     else:
-                        new_intent = Intent(id = 0, name="", group= IntentGroupEnum.UNKONW)
+                        new_intent = Intent(id = -1, name="", group= IntentGroupEnum.UNKONW)
                     current_thread = Thread(user = user, intent = new_intent, status = ThreadEnum.OPENED, date = now)
                     current_thread.save()
 
@@ -113,20 +118,21 @@ def api_query():
                     path_media = os.path.join(config['FOLDER_MEDIA'],current_thread.date.strftime("%Y%m%d"),current_thread.intent.name,str(current_thread.id))
                     os.makedirs(path_media, exist_ok=True)
                     total = 0
-                    for idx, media in enumerate(req.files):
+                    for idx, media_name in enumerate(req.files):
+                        media = request.files[media_name]
                         path_file = os.path.join(path_media,media.filename)
                         media.save(path_file)
-                        slots.append({"media" + str(idx):path_file})
+                        slots["media" + str(idx)] = path_file
                         total = total + 1
-                    slots.append({"total":total})
+                    slots["total_files"] = total
                     # Set the new slots for media messages
                     chat.slots = slots
 
                 # Using policy depending the
-                if last_thread.intent.group == IntentGroupEnum.COMMAND:
+                if IntentGroupEnum(current_thread.intent.group) == IntentGroupEnum.COMMAND:
                     policy = PolicyCommand()
                     answers.extend(policy.process(current_thread, chat))
-                elif last_thread.intent.group == IntentGroupEnum.QA:
+                elif IntentGroupEnum(current_thread.intent.group) == IntentGroupEnum.QA:
                     # Validate if the melisa should answer fast and saying wait
                     if melisa.say_wait:
                         an_sys = Generator.print([Reply(ReplyKindEnum.WAIT)])
@@ -134,9 +140,10 @@ def api_query():
                         send_message(req,melisa,an_sys[0].messages)
                     policy = PolicyQA(config["ACLIMATE_API"],",".join(melisa.countries))
                     answers.extend(policy.process(current_thread, chat, recent_chats))
-                elif last_thread.intent.group == IntentGroupEnum.FORM:
-                    policy = PolicyForms()
-                    answers.extend(policy.process(current_thread, chat, recent_chats))
+                elif IntentGroupEnum(current_thread.intent.group) == IntentGroupEnum.FORM:
+                    forms = [f for f in all_forms if f.command == current_thread.intent.name]
+                    policy = PolicyForms(config['FOLDER_MEDIA'],agrilac=agrilac)
+                    answers.extend(policy.process(current_thread, chat, recent_chats,forms[0]))
 
                 # Generate the answer to users
                 answers_generated = Generator.print(answers)

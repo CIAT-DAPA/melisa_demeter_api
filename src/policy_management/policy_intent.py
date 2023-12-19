@@ -34,16 +34,16 @@ class PolicyIntent():
         slots = {}
         if msg.lower().startswith(("hola", "hi")):
             detected = "hi"
-            id = PolicyKnownEnum.HI
+            id = PolicyKnownEnum.HI.value
         elif msg.lower().startswith(("help","ayuda")):
             detected = "help"
-            id = PolicyKnownEnum.HELP
+            id = PolicyKnownEnum.HELP.value
         elif msg.lower().startswith(("bye", "adios", "chao")):
             detected = "bye"
-            id = PolicyKnownEnum.BYE
+            id = PolicyKnownEnum.BYE.value
         elif msg.lower().startswith(("thank","gracias")):
             detected = "thanks"
-            id = PolicyKnownEnum.THANKS
+            id = PolicyKnownEnum.THANKS.value
         else:
             form_found = [form for form in all_forms if form.command == msg]
             if form_found:
@@ -53,8 +53,8 @@ class PolicyIntent():
             else:
                 group = IntentGroupEnum.QA
                 utterance = self.nlu.nlu(msg)
-                detected = utterance["name"]
-                id = PolicyKnownEnum(utterance["name"].upper())
+                detected = utterance["name"].lower()
+                id = PolicyKnownEnum[utterance["name"].upper()].value
                 slots = utterance["slots"]
         intent = IntentDetected(group=group, id = id, detected=detected, slots=slots)
         #print("intent",intent.group,intent.detected,intent.slots)
