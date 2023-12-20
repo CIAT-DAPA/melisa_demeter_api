@@ -75,6 +75,9 @@ def api_query():
                 else:
                     user = User.objects.get(user_id=req.user_id)
 
+                ##########################################
+                # NLU
+                ##########################################
                 # Detect the intention
                 p_intent = PolicyIntent(nlu=nlu_o)
                 all_forms = Form.objects()
@@ -85,6 +88,10 @@ def api_query():
                 if req.kind_msg == ChatKindEnum.TEXT:
                     int_detected = p_intent.detection(req.message_normalized, all_forms=all_forms)
                     slots = int_detected.slots
+
+                ##########################################
+                # STATUS TRACE
+                ##########################################
 
                 # Get latest thread and check what the chatbot should do
                 current_thread = None
@@ -128,6 +135,10 @@ def api_query():
                     # Set the new slots for media messages
                     chat.slots = slots
 
+                ##########################################
+                # POLICY
+                ##########################################
+
                 # Using policy depending the
                 if IntentGroupEnum(current_thread.intent.group) == IntentGroupEnum.COMMAND:
                     policy = PolicyCommand()
@@ -145,6 +156,10 @@ def api_query():
                     policy = PolicyForms(config['FOLDER_MEDIA'],agrilac=agrilac)
                     answers.extend(policy.process(current_thread, chat, recent_chats,forms[0]))
 
+                ##########################################
+                # NLG
+                ##########################################
+
                 # Generate the answer to users
                 answers_generated = Generator.print(answers)
                 text_generated = []
@@ -159,8 +174,6 @@ def api_query():
                         chat_sys.save()
                         text_generated.append(m)
                 send_message(req,melisa,text_generated)
-                #request_body = {"user_id": req.user_id, "token": melisa.token, "message_tags":req.message_tags, "chat_id":req.chat_id, "text": text_generated}
-                #response = requests.post(melisa.url_post,json=request_body)
                 return Response("Ok",200)
             else:
                 return Response("Melisa Unauthorized",401)
