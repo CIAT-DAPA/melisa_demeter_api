@@ -13,6 +13,7 @@ class Generator():
         sys_answers = []
 
         for a in answers:
+            #print(a[0])
             msg = []
             slots = None
             # Commands

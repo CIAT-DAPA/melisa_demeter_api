@@ -31,14 +31,14 @@ class PolicyQA():
                 answers.extend(self.aclimate_client.geographic(chat.text))
                 self.close_thread(thread, chat, ChatStatusEnum.OK)
             else:
-                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                answers.extend([Reply(ReplyErrorEnum.MISSING_LOCALITIES)])
                 chat.save()
 
         elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.CULTIVARS:
             crop = chat.slots["crop"] if "crop" in chat.slots else None
             cultivar = chat.slots["cultivar"] if "cultivar" in chat.slots else None
             answers.extend(self.aclimate_client.cultivars(crop,cultivar))
-            self.close_thread(thread)
+            self.close_thread(thread, chat, ChatStatusEnum.OK)
 
         elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.CLIMATOLOGY:
             # Check if the current message has the data needed
@@ -51,7 +51,7 @@ class PolicyQA():
                 answers.extend(self.aclimate_client.geographic(chat.text))
                 self.close_thread(thread, chat, ChatStatusEnum.OK)
             else:
-                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                answers.extend([Reply(ReplyErrorEnum.MISSING_LOCALITIES)])
                 chat.save()
 
         elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_PRECIPITATION:
@@ -65,7 +65,7 @@ class PolicyQA():
                 answers.extend(self.aclimate_client.geographic(chat.text))
                 self.close_thread(thread, chat, ChatStatusEnum.OK)
             else:
-                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                answers.extend([Reply(ReplyErrorEnum.MISSING_LOCALITIES)])
                 chat.save()
 
         elif PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_YIELD or PolicyKnownEnum(thread.intent.id) == PolicyKnownEnum.FORECAST_DATE:
@@ -82,6 +82,6 @@ class PolicyQA():
                 answers.extend(self.aclimate_client.geographic(chat.text))
                 self.close_thread(thread, chat, ChatStatusEnum.OK)
             else:
-                answers.extend(Reply(ReplyErrorEnum.MISSING_LOCALITIES))
+                answers.extend([Reply(ReplyErrorEnum.MISSING_LOCALITIES)])
                 chat.save()
         return answers

@@ -50,14 +50,32 @@ class PolicyForms():
                 if text_ok:
                     chat.status = ChatStatusEnum.OK
                     chat.save()
-
                     # remove all questions did until now and are OK
-                    questions_pending = [q for q, c in zip(questions, history_chats) if (q.name != c.slots["question"] and c.status == ChatStatusEnum.OK) and (q.name != chat.slots["question"] and chat.status == ChatStatusEnum.OK)]
+                    #questions_pending = [q for q, c in zip(questions, history_chats) if (q.name != c.slots["question"] and c.status == ChatStatusEnum.OK) and (q.name != chat.slots["question"] and chat.status == ChatStatusEnum.OK)]
+
+                    #questions_pending = [q for q, c in zip(questions, history_chats) if (q.name != c.slots["question"])]
+                    #print("Preguntas pendientes 1",len(questions_pending))
+                    #questions_wrong = [q for q, c in zip(questions_pending, history_chats) if (q.name == c.slots["question"] and c.status != ChatStatusEnum.OK and c.whom == ChatWhomEnum.USER)]
+                    #if questions_wrong and len(questions_wrong) > 0:
+                    #    questions_pending.extend(questions_wrong)
+                    #print("Preguntas pendientes 2",len(questions_pending),len(questions_wrong))
+
+                    questions_pending = []
+
+                    # Obtener una lista de los nombres de preguntas en history_chats
+                    question_names_in_history_chats = [c.slots["question"] for c in history_chats if "question" in c.slots]
+
+
+                    # Filtrar las preguntas que no están en history_chats
+                    questions_pending = [q for q in questions if q.name not in question_names_in_history_chats]
+
                     # We check if still we need to ask more questions to users
                     if questions_pending:
+                        #print("Preguntas pendientes",len(questions_pending),questions_pending[0].name)
                         answers.extend([Reply(ReplyFormEnum.QUESTION,questions_pending[0].description,{"question":questions_pending[0].name})])
                     # If we don't have to ask more question, we should call the API
                     else:
+                        #print("NO Preguntas pendientes")
                         # It is just for test
                         if thread.intent.name == "test":
                             self.close_thread(thread, chat, ChatStatusEnum.OK)
