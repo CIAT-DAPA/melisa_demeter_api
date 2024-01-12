@@ -1,8 +1,9 @@
 import re
 import os
 from nlg.reply import Reply, ReplyFormEnum, ReplyErrorEnum
-from melisa_orm import ThreadEnum, ChatStatusEnum, ChatKindEnum, Question, ChatWhomEnum, ChatKindEnum
-
+from melisa_orm import ThreadEnum, ChatStatusEnum, ChatKindEnum, Question, ChatWhomEnum,Thread,Chat
+from forms.croppie import Croppie
+import uuid
 class PolicyForms():
 
     def __init__(self, folder_media, agrilac = None, croppie = None):
@@ -88,9 +89,67 @@ class PolicyForms():
                                 answers.extend([Reply(ReplyFormEnum.RECEIVED_ERROR)])
                                 self.close_thread(thread, chat, ChatStatusEnum.ERROR)
                         elif thread.intent.name == "croppie farm":
-                            ###################
-                            # CODE CROPPIE
                             self.close_thread(thread, chat, ChatStatusEnum.OK)
+                            answers.extend([Reply(ReplyFormEnum.RECEIVED_OK)])
+                            print("croppie farm ended calling api")
+                            chat = Chat.objects(thread=thread.id, whom="user")
+                            slots_first_post=[c.slots for c in chat]
+                            slots_fixed = [entry for entry in slots_first_post if entry]
+                            params = {}
+                            images = {}
+
+
+                            for entry in slots_fixed:
+                                if entry['question'] in ['plot_area', 'altitude', 'region_id', 'variety_id','plants_count']:
+                                    key = entry['question']
+                                    value = entry.get('AD]', '')
+                                    params[key] = value
+                                elif 'media0' in entry:
+                                    key = entry['question']
+                                    value = entry['media0']
+                                    images[key] = value
+
+                            print(params)
+                            region_id = int(params.get('region_id', ''))
+                            variety_id = int(params.get('variety_id', ''))
+                            plot_area = int(params.get('plot_area', ''))
+                            altitude = int(params.get('altitude', ''))
+                            altitude = int(params.get('altitude', ''))
+                            plants_count = int(params.get('plants_count', ''))
+                            branch_counts = {entry['question'].split('_')[-1]: entry['AD]'] for entry in slots_fixed if entry['question'].startswith('branch_count_three')}
+                            croppie_instance = Croppie(url="https://api.croppie.org/api")
+                            response = croppie_instance.post_data(region_id, variety_id, plot_area, altitude)
+
+                            id_plat_form=response["id"]
+                            response_urls = {}
+                            for key, value in images.items():
+                                response = croppie_instance.post_image(value)
+                                print(response)
+                                response_urls[key] = response[0]
+                            coffee_plants = []
+
+                            for branch_number, count in branch_counts.items():
+                                plant_images = [
+                                    {
+                                        "original_url": response_urls.get(photo_key, ''),
+                                        "manual_fruit_count": 0
+                                    } for photo_key in images.keys() if photo_key.startswith(f'photo{branch_number}')
+                                ] or []  
+
+                                plant = {
+                                    "plant_id": str(uuid.uuid4()),
+                                    "plant_height": 2.5,
+                                    "plant_age": 4.5,
+                                    "branch_count": int(count),
+                                    "plant_performance": "middle",
+                                    "plant_images": plant_images
+                                }
+
+                                coffee_plants.append(plant)
+                            response_post_stimation=croppie_instance.post_plant_data(plants_count,coffee_plants,id_plat_form)
+                            id_stimation=response_post_stimation["id"]
+                            estimation=croppie_instance.get_coffee_yield_estimate(id_stimation)
+                            print(estimation)
                         elif thread.intent.name == "croppie coffe":
                             ###################
                             # CODE CROPPIE

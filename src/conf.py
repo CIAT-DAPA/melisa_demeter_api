@@ -15,6 +15,7 @@ if os.getenv('DEBUG', "true").lower() == "true":
     config['AGRILAC_KEY']=""
     config['AGRILAC_FILE']=""
     config['AGRILAC_SHEET']=""
+    config['CROPPIE_TOKEN']=""
     config['FOLDER_MEDIA']="D:\\CIAT\\Code\\USAID\\melisa_demeter_api\\data\\media"
 else:
     config['DEBUG']=False
@@ -30,3 +31,5 @@ else:
     config['AGRILAC_FILE']=os.getenv('AGRILAC_FILE')
     config['AGRILAC_SHEET']=os.getenv('AGRILAC_SHEET')
     config['FOLDER_MEDIA']=os.getenv('FOLDER_MEDIA')
+    config['CROPPIE_TOKEN']=os.getenv('CROPPIE_TOKEN')
+
