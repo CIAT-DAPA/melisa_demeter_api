@@ -1,9 +1,12 @@
 import re
 import os
-from nlg.reply import Reply, ReplyFormEnum, ReplyErrorEnum
+from nlg.reply import Reply, ReplyFormEnum, ReplyErrorEnum,ReplyFormCroppieEnum
+from nlg.generator import Generator
+from nlg.reply_system import ReplySystem
 from melisa_orm import ThreadEnum, ChatStatusEnum, ChatKindEnum, Question, ChatWhomEnum,Thread,Chat
 from forms.croppie import Croppie
 import uuid
+import time
 class PolicyForms():
 
     def __init__(self, folder_media, agrilac = None, croppie = None):
@@ -148,8 +151,29 @@ class PolicyForms():
                                 coffee_plants.append(plant)
                             response_post_stimation=croppie_instance.post_plant_data(plants_count,coffee_plants,id_plat_form)
                             id_stimation=response_post_stimation["id"]
-                            estimation=croppie_instance.get_coffee_yield_estimate(id_stimation)
-                            print(estimation)
+                            while True:
+                                estimation = croppie_instance.get_coffee_yield_estimate(id_stimation)
+                                print(estimation["status"])
+                                if estimation["status"] == "finished":
+                                    print("La estimación ha finalizado con éxito.")
+                                    print(estimation)
+                                    answers.extend([Reply(ReplyFormCroppieEnum.FINISHED_ESTIMATION,estimation)])
+                                    # Realizar acciones adicionales si es necesario
+                                    break
+                                elif estimation["status"] == "failed":
+                                    print("La estimación ha fallado.")
+                                    answers.extend([Reply(ReplyFormEnum.RECEIVED_ERROR)])
+                                    # Realizar acciones adicionales si es necesario
+                                    break
+                                elif estimation["status"] == "running":
+                                    print("La estimación aún está en progreso. Esperando...")
+                                    time.sleep(5)
+                                elif estimation["status"] == "queued":
+                                    print("La estimación esta programada...")
+                                    time.sleep(5)   # Esperar 10 segundos antes de volver a verificar
+                                else:
+                                    print("Estado desconocido de la estimación. Saliendo del bucle.")
+                                    break
                         elif thread.intent.name == "croppie coffe":
                             ###################
                             # CODE CROPPIE

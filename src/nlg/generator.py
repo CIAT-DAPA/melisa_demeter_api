@@ -1,5 +1,5 @@
 import pandas as pd
-from nlg.reply import ReplyKindEnum,ReplyErrorEnum,ReplyGeographicEnum,ReplyCultivarsEnum,ReplyHistoricalEnum,ReplyForecastEnum,ReplyFormEnum
+from nlg.reply import ReplyKindEnum,ReplyErrorEnum,ReplyGeographicEnum,ReplyCultivarsEnum,ReplyHistoricalEnum,ReplyForecastEnum,ReplyFormEnum,ReplyFormCroppieEnum
 from nlg.reply_system import ReplySystem
 
 class Generator():
@@ -152,6 +152,11 @@ class Generator():
                 elif(a.type == ReplyFormEnum.QUESTION):
                     msg.append(a.values)
                     slots = a.tag
+            elif (isinstance(a.type, ReplyFormCroppieEnum)):
+                if(a.type == ReplyFormCroppieEnum.FINISHED_ESTIMATION):
+                    msg.append("El rendimiento estimado es: " + str(int(a.values['estimated_yield_total'])) + " El Rendimento estimado en cafe pergamino es: " +str(int(a.values['estimated_yield_parch']))+ " y su estimado en cafe verde es: " +str(int(a.values['estimated_yield_green']))+" Datos expresados en Kilogramos por hectarea (Kg/Ha)")
+                elif(a.type == ReplyFormEnum.FAILED_ESTIMATION):
+                    msg.append("Error al registrar")
 
             # Message error
             elif (isinstance(a.type, ReplyErrorEnum)):

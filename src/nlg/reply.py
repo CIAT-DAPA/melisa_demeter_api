@@ -48,6 +48,11 @@ class ReplyFormEnum(Enum):
     QUESTION = 1
     RECEIVED_OK = 2
     RECEIVED_ERROR = 3
+    
+class ReplyFormCroppieEnum(Enum):
+    FAILED_ESTIMATION = 1
+    FINISHED_ESTIMATION = 2
+
 
 # Class representing a generic reply
 class Reply():
