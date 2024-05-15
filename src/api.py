@@ -6,7 +6,7 @@ import requests
 import datetime
 from flask_cors import cross_origin
 from mongoengine import *
-
+import json
 from melisa_orm import Melisa, User, Thread, ThreadEnum, Chat, Form, ChatWhomEnum, ChatStatusEnum, ChatKindEnum, Intent, IntentGroupEnum
 
 from policy_management.policy_intent import PolicyIntent,PolicyKnownEnum
@@ -36,7 +36,7 @@ def home():
 
 def send_message(req,melisa,messages):
     request_body = {"user_id": req.user_id, "token": melisa.token, "message_tags":req.message_tags, "chat_id":req.chat_id, "text": messages}
-    #print(request_body)
+    print(f"request body{request_body}")
     response = requests.post(melisa.url_post,json=request_body)
 
 # A route to return all of the available entries in our catalog.
@@ -44,7 +44,24 @@ def send_message(req,melisa,messages):
 @cross_origin()
 def api_query():
     #data = request.get_json()
+    print(request.form)
     data = request.form.to_dict()
+    if data.get("user_tags.service") =="facebook" or data.get("user_tags.service") == "whatsapp":
+        print("es whatsapp o facebook")
+        user_tags = {}
+        message_tags = {}
+
+        for key, value in data.items():
+            if key.startswith('user_tags.'):
+                user_tags[key.split('.')[1]] = value
+            elif key.startswith('message_tags.'):
+                message_tags[key.split('.')[1]] = value
+
+# Agregar los diccionarios al diccionario original
+        data['user_tags'] = user_tags
+        data['message_tags'] = message_tags
+
+    print(f"la data es {data}")
     #print("Request Content:", content)
     #print("original json",request.json)
     #print("json",data)
@@ -56,6 +73,7 @@ def api_query():
         req.validate_request()
         #print("validate", req)
         # Validate if melisa exists into the database
+        
         if not Melisa.objects(name=req.melisa_name):
             return Response("Melisa unknown",400)
         else:
@@ -65,7 +83,11 @@ def api_query():
                 answers = []
                 user = None
                 # Check if the user is new
-                if not User.objects(user_id=req.user_id):
+                if(type(req.user_tags) == str):
+                        print("user_tags is srt")
+                        req.user_tags = {}
+                if not User.objects(user_id=req.user_id):   
+                    print("user_tags",req.user_tags)
                     user = User(melisa = melisa, user_id = req.user_id, tags = req.user_tags)
                     user.save()
                     # Sending welcome to new user
@@ -166,6 +188,7 @@ def api_query():
                 now2 = datetime.datetime.now()
                 for ag in answers_generated:
                     for m in ag.messages:
+                        print(f"el mensaje es {m}")
                         chat_sys = Chat(thread=current_thread, date = now2,
                                 original = str(ag.type), text = m,
                                 status = ChatStatusEnum.OK, kind_msg = ChatKindEnum.TEXT,

@@ -26,44 +26,65 @@ class PolicyForms():
     def process(self, thread, chat, history_chats, form):
         answers = []
         questions = Question.objects(form=form).order_by('order')
-
+        error_found = False
         # Check if it has history in the chats. if it doesn't have it is the first question
         if history_chats:
             # We should take the latest question
             if history_chats.first().whom == ChatWhomEnum.SYSTEM:
                 for key, value in history_chats.first().slots.items():
                     chat.slots[key] = value
-
+                
                 # Validation
                 question_current = [q for q in questions if q.name == chat.slots["question"]]
                 qc = question_current[0]
                 text_ok = True
                 # Loop to check all validations of the questions
+                print(f"la question current es {qc.name} y el texto es {chat.text}")
                 if qc.validations:
                     for v in qc.validations:
+                        print(v.exp)
                         text_ok = re.match(v.exp , chat.text)
-                        # If the question doesn't accomplish with the requirements
-                        # change the status of the chat and stop
+                        print(text_ok)
                         if not text_ok:
-                            answers.extend([Reply(ReplyErrorEnum.QUESTION_NOT_FORMAT,v.error_msg,None)])
+                            print('algo paso')
+                            print(v.error_msg)
+                            answers.extend([Reply(ReplyErrorEnum.QUESTION_NOT_FORMAT, v.error_msg, None)])
+                            answers.extend([Reply(ReplyFormEnum.QUESTION, qc.description, {"question": qc.name})])  # Add the same question again
                             chat.status = ChatStatusEnum.ERROR
                             chat.save()
+                            return answers 
                             break
 
                 # If everything is ok we save the chat and continue the flow
                 if text_ok:
                     chat.status = ChatStatusEnum.OK
                     chat.save()
-                    # remove all questions did until now and are OK
-                    #questions_pending = [q for q, c in zip(questions, history_chats) if (q.name != c.slots["question"] and c.status == ChatStatusEnum.OK) and (q.name != chat.slots["question"] and chat.status == ChatStatusEnum.OK)]
+                    # Now you can retrieve the saved values from the chat and proceed with additional processing
+                    plot_area_first = None
+                    lot_area_first = None
+                    chat_second_validation = Chat.objects(thread=thread.id, whom="user")
+                    slots_first_validation=[c.slots for c in chat_second_validation]
 
-                    #questions_pending = [q for q, c in zip(questions, history_chats) if (q.name != c.slots["question"])]
-                    #print("Preguntas pendientes 1",len(questions_pending))
-                    #questions_wrong = [q for q, c in zip(questions_pending, history_chats) if (q.name == c.slots["question"] and c.status != ChatStatusEnum.OK and c.whom == ChatWhomEnum.USER)]
-                    #if questions_wrong and len(questions_wrong) > 0:
-                    #    questions_pending.extend(questions_wrong)
-                    #print("Preguntas pendientes 2",len(questions_pending),len(questions_wrong))
-
+                    slots_to_validate = [entry for entry in slots_first_validation if entry]
+                    params_validates = {}
+                    for entry in slots_to_validate:
+                        if entry['question'] in ['plot_area', 'lot_area']:
+                            key = entry['question']
+                            value = entry.get('AD]', '')
+                            params_validates[key] = value
+                    if 'plot_area' in params_validates:
+                        plot_area_first = int(params_validates.get('plot_area', ''))
+                    if 'lot_area' in params_validates:
+                        lot_area_first = int(params_validates.get('lot_area', ''))
+                    if qc.name == "plants_count" and (int(chat.text) < 500 * int(lot_area_first) or int(chat.text) > 12000 * int(lot_area_first)):
+                        range_message = f"El número de plantas debe estar entre {500 * int(lot_area_first)} y {12000 * int(lot_area_first)}"
+                        answers.extend([Reply(ReplyErrorEnum.QUESTION_NOT_FORMAT, range_message, None)])
+                        answers.extend([Reply(ReplyFormEnum.QUESTION, qc.description, {"question": qc.name})])
+                        return answers
+                    if qc.name == "lot_area" and int(chat.text) >= int(plot_area_first):
+                        answers.extend([Reply(ReplyErrorEnum.QUESTION_NOT_FORMAT, "El área del lote no puede ser mayor que el área total de la finca", None)])
+                        answers.extend([Reply(ReplyFormEnum.QUESTION, qc.description, {"question": qc.name})])
+                        return answers
                     questions_pending = []
 
                     # Obtener una lista de los nombres de preguntas en history_chats
@@ -83,7 +104,6 @@ class PolicyForms():
                         # It is just for test
                         if thread.intent.name == "test":
                             self.close_thread(thread, chat, ChatStatusEnum.OK)
-                            answers.extend([Reply(ReplyFormEnum.RECEIVED_OK)])
                         elif thread.intent.name == "agrilac":
                             if self.agrilac.insert_data(chat.text) == "ok":
                                 answers.extend([Reply(ReplyFormEnum.RECEIVED_OK)])
@@ -93,17 +113,18 @@ class PolicyForms():
                                 self.close_thread(thread, chat, ChatStatusEnum.ERROR)
                         elif thread.intent.name == "croppie farm":
                             self.close_thread(thread, chat, ChatStatusEnum.OK)
-                            answers.extend([Reply(ReplyFormEnum.RECEIVED_OK)])
                             print("croppie farm ended calling api")
-                            chat = Chat.objects(thread=thread.id, whom="user")
+                            # Now you can use the saved information in the chat for further processing
+                            chat = Chat.objects(thread=thread.id, whom="user", status=ChatStatusEnum.OK)
                             slots_first_post=[c.slots for c in chat]
                             slots_fixed = [entry for entry in slots_first_post if entry]
                             params = {}
                             images = {}
-
+                            
+                            answers.extend([Reply(ReplyFormEnum.RECEIVED_OK)])
 
                             for entry in slots_fixed:
-                                if entry['question'] in ['plot_area', 'altitude', 'region_id', 'variety_id','plants_count']:
+                                if entry['question'] in ['plot_area', 'altitude', 'region_id', 'variety_id','plants_count','lot_area']:
                                     key = entry['question']
                                     value = entry.get('AD]', '')
                                     params[key] = value
@@ -111,8 +132,7 @@ class PolicyForms():
                                     key = entry['question']
                                     value = entry['media0']
                                     images[key] = value
-
-                            print(params)
+                            print(f"los parametros son {params}")
                             region_id = int(params.get('region_id', ''))
                             variety_id = int(params.get('variety_id', ''))
                             plot_area = int(params.get('plot_area', ''))
@@ -122,7 +142,7 @@ class PolicyForms():
                             branch_counts = {entry['question'].split('_')[-1]: entry['AD]'] for entry in slots_fixed if entry['question'].startswith('branch_count_three')}
                             croppie_instance = Croppie(url="https://api.croppie.org/api")
                             response = croppie_instance.post_data(region_id, variety_id, plot_area, altitude)
-
+                            print(f"el branch count es {branch_counts}")
                             id_plat_form=response["id"]
                             response_urls = {}
                             for key, value in images.items():
@@ -130,7 +150,7 @@ class PolicyForms():
                                 print(response)
                                 response_urls[key] = response[0]
                             coffee_plants = []
-
+                            print(f" las respuestas son {response_urls}")
                             for branch_number, count in branch_counts.items():
                                 plant_images = [
                                     {
@@ -151,13 +171,13 @@ class PolicyForms():
                                 coffee_plants.append(plant)
                             response_post_stimation=croppie_instance.post_plant_data(plants_count,coffee_plants,id_plat_form)
                             id_stimation=response_post_stimation["id"]
+                            
                             while True:
                                 estimation = croppie_instance.get_coffee_yield_estimate(id_stimation)
                                 print(estimation["status"])
                                 if estimation["status"] == "finished":
                                     print("La estimación ha finalizado con éxito.")
                                     print(estimation)
-                                    answers.extend([Reply(ReplyFormCroppieEnum.FINISHED_ESTIMATION,estimation)])
                                     # Realizar acciones adicionales si es necesario
                                     break
                                 elif estimation["status"] == "failed":
@@ -174,12 +194,13 @@ class PolicyForms():
                                 else:
                                     print("Estado desconocido de la estimación. Saliendo del bucle.")
                                     break
+                            answers.extend([Reply(ReplyFormCroppieEnum.FINISHED_ESTIMATION,estimation)])
                         elif thread.intent.name == "croppie coffe":
                             ###################
                             # CODE CROPPIE
                             self.close_thread(thread, chat, ChatStatusEnum.OK)
-            else:
-                print("Second message in line")
+                else:
+                    print("Second message in line")
         # It is the first question
         else:
             answers.extend([Reply(ReplyFormEnum.QUESTION, questions.first().description, {"question":questions.first().name})])

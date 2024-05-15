@@ -176,7 +176,7 @@ class Generator():
                 elif(a.type == ReplyErrorEnum.ERROR_ACLIMATE_FORECAST_YIELD):
                     msg.append("Lo sentimos, no hay información de pronóstico de cultivo de para la localidad de: " + a.tag + " en AClimate")
                 elif(a.type == ReplyErrorEnum.QUESTION_NOT_FORMAT):
-                    msg.append(a.tag)
+                    msg.append(a.values)
 
             sys_answers.append(ReplySystem(a.type,msg,slots))
 
