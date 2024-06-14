@@ -32,4 +32,7 @@ else:
     config['AGRILAC_SHEET']=os.getenv('AGRILAC_SHEET')
     config['FOLDER_MEDIA']=os.getenv('FOLDER_MEDIA')
     config['CROPPIE_TOKEN']=os.getenv('CROPPIE_TOKEN')
+    config['CENAOS_SPREADSHEET']=os.getenv('CENAOS_SPREADSHEET')
+    config['CENAOS_SHEET']=os.getenv('CENAOS_SHEET')
+    config['CENAOS_CREDENTIALS']=os.getenv('CENAOS_CREDENTIALS')
 

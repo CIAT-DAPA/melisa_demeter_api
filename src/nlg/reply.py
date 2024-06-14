@@ -48,6 +48,7 @@ class ReplyFormEnum(Enum):
     QUESTION = 1
     RECEIVED_OK = 2
     RECEIVED_ERROR = 3
+    RECEIVED_DATA_SHEET = 4
     
 class ReplyFormCroppieEnum(Enum):
     FAILED_ESTIMATION = 1
